@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import axios from "axios";
 
-// Sample correct answers
+// Sample correct answers (use your logic)
 const correctAnswers = {
     0: "Yes",
     1: "No",
@@ -18,6 +18,7 @@ const VerticalCarousel = ({ slides, delay = 1000 }) => {
     const [apiResponse, setApiResponse] = useState(null); // Store the API response
     const [isLoading, setIsLoading] = useState(false); // Loading state for API call
     const [error, setError] = useState(null); // Error state for API call
+    const [allResponses, setAllResponses] = useState([]); // Store all responses fetched from the API
 
     const handleDotClick = (index) => {
         setCurrentSlide(index);
@@ -26,8 +27,7 @@ const VerticalCarousel = ({ slides, delay = 1000 }) => {
     const nextSlide = () => {
         const isLastSlide = currentSlide === slides.length - 1;
         if (!isLastSlide) {
-            const newSlide = currentSlide + 1;
-            setCurrentSlide(newSlide);
+            setCurrentSlide(currentSlide + 1);
         }
     };
 
@@ -45,41 +45,47 @@ const VerticalCarousel = ({ slides, delay = 1000 }) => {
         // Add delay before moving to the next slide
         setTimeout(() => {
             nextSlide();
-        }, delay); // Use the delay prop
+        }, delay);
     };
 
     const handleSubmit = async () => {
-        // Check if any questions are unanswered
         const unanswered = responses.filter((response) => response === null);
         if (unanswered.length > 0) {
             alert("Please answer all questions before submitting.");
         } else {
-            setIsLoading(true); // Set loading state before calling the API
+            setIsLoading(true);
             try {
-                // Call the mock API using axios
-                const response = await axios.post(
-                    "https://jsonplaceholder.typicode.com/posts",
-                    responses,
-                    {
-                        headers: {
-                            "Content-Type": "application/json",
-                        },
-                    }
-                );
-
-                setApiResponse(response.data); // Store the API response (object)
-                setIsLoading(false); // End loading state
-                setShowModal(true); // Show the modal after the API call
+                const response = await axios.post("http://localhost:5000/api/store", responses, {
+                    headers: { "Content-Type": "application/json" },
+                });
+                setApiResponse(response.data); // Store the API response
+                setIsLoading(false);
+                setShowModal(true); // Show the modal after submission
             } catch (err) {
                 setError(err.message); // Handle error state
-                setIsLoading(false); // End loading state
-                console.error(err);
+                setIsLoading(false);
+                console.error("Error submitting responses:", err);
             }
         }
     };
 
+    // Fetch all responses when the component mounts
+    useEffect(() => {
+        const fetchResponses = async () => {
+            try {
+                const res = await axios.get("http://localhost:5000/api/store");
+                setAllResponses(res.data);
+                console.log("Fetched responses:", res.data);
+            } catch (err) {
+                console.error("Error fetching responses:", err);
+            }
+        };
+        fetchResponses();
+    }, []);
+
     const handleCloseModal = () => {
         setShowModal(false); // Close the modal
+        setApiResponse(null); // Clear the API response
     };
 
     return (
@@ -115,29 +121,28 @@ const VerticalCarousel = ({ slides, delay = 1000 }) => {
                                 </div>
                             </div>
                             <div className="flex-1 flex items-center bg-white justify-center space-x-5">
-                                {slide.reactions.map((reaction, i) => (
+                                {slide.reactions.map((element, i) => (
                                     <div
                                         key={i}
                                         className="relative flex flex-col items-center"
                                         onMouseEnter={() => setHoveredButton(i)}
                                         onMouseLeave={() => setHoveredButton(null)}
                                     >
-                                        {/* Button */}
                                         <button
-                                            onClick={() => handleOptionClick(reaction)}
-                                            className={`text-6xl focus:outline-none p-4 rounded-full ${responses[currentSlide]?.selectedOption === reaction
+                                            onClick={() => handleOptionClick(element)}
+                                            className={`text-6xl focus:outline-none p-4 rounded-full ${responses[currentSlide]?.selectedOption === element
                                                 ? "bg-purple-300"
                                                 : ""
                                                 }`}
                                         >
-                                            {reaction === "Yes" ? "👍" : "👎"}
+                                            {element === "Yes" ? "👍" : "👎"}
                                         </button>
 
                                         {/* Tooltip */}
                                         {(hoveredButton === i ||
-                                            responses[currentSlide]?.selectedOption === reaction) && (
+                                            responses[currentSlide]?.selectedOption === element) && (
                                                 <div className="absolute mt-28 text-lg text-gray-700 bg-gray-200 p-2 rounded-lg shadow-lg">
-                                                    {reaction === "Yes" ? "Yes" : "No"}
+                                                    {element === "Yes" ? "Yes" : "No"}
                                                 </div>
                                             )}
                                     </div>
@@ -154,7 +159,7 @@ const VerticalCarousel = ({ slides, delay = 1000 }) => {
                     <button
                         onClick={handleSubmit}
                         className="px-6 py-3 bg-purple-500 text-white rounded-lg"
-                        disabled={isLoading} // Disable button during loading
+                        disabled={isLoading}
                     >
                         {isLoading ? "Submitting..." : "Submit"}
                     </button>
@@ -183,7 +188,6 @@ const VerticalCarousel = ({ slides, delay = 1000 }) => {
                                 </li>
                             ))}
                         </ul>
-
 
                         <button
                             onClick={handleCloseModal}
