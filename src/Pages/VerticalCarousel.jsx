@@ -75,7 +75,7 @@ const VerticalCarousel = ({ slides, delay = 1000 }) => {
             try {
                 const res = await axios.get("http://localhost:5000/api/store");
                 setAllResponses(res.data);
-                console.log("Fetched responses:", res.data);
+                console.log("Fetched responses11111:", res.data);
             } catch (err) {
                 console.error("Error fetching responses:", err);
             }
